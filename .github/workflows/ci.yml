@@ -1,0 +1,26 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 12 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec next typegen
+      - run: pnpm exec tsc --noEmit
+      - run: pnpm exec eslint .
+      - run: pnpm exec vitest run
+      - run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: E2E against static export
+        run: |
+          python3 -m http.server 4321 --directory out --bind 127.0.0.1 &
+          sleep 1
+          pnpm exec playwright test
