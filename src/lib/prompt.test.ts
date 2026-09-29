@@ -1,98 +1,127 @@
 import { describe, expect, it } from "vitest";
 import {
   buildPrompt,
+  buildSegments,
   decodeState,
   emptyState,
   encodeState,
+  targetNotes,
   type PromptState,
+  type Target,
 } from "./prompt";
 
-describe("buildPrompt", () => {
+const full = (target: Target): PromptState => ({
+  ...emptyState(),
+  subject: "a lone astronaut",
+  style: "cinematic photograph",
+  environment: "a red desert",
+  lighting: "golden hour light",
+  camera: "low angle",
+  ratio: "16:9",
+  negative: "text, watermark",
+  target,
+});
+
+describe("buildPrompt — shared rules", () => {
   it("returns empty string when nothing is filled", () => {
     expect(buildPrompt(emptyState())).toBe("");
   });
 
-  it("builds a natural sentence from subject only", () => {
-    const s: PromptState = { ...emptyState(), subject: "a red fox" };
-    expect(buildPrompt(s)).toBe("A red fox.");
+  it("returns empty when only ratio/negative are set", () => {
+    expect(buildPrompt({ ...emptyState(), ratio: "1:1", negative: "text" })).toBe("");
   });
 
-  it("orders style, subject, environment, then details, then ratio", () => {
-    const s: PromptState = {
-      ...emptyState(),
-      subject: "luxury sports car",
-      style: "cinematic photograph",
-      environment: "Tokyo at night",
-      lighting: "neon lighting",
-      camera: "low angle",
-      lens: "35mm lens",
-      composition: "wide shot",
-      mood: "dramatic mood",
-      color: "blue and black palette",
-      ratio: "16:9",
-    };
-    expect(buildPrompt(s)).toBe(
-      "Cinematic photograph of luxury sports car in Tokyo at night, neon lighting, low angle, 35mm lens, wide shot, dramatic mood, blue and black palette --ar 16:9",
+  it("orders style of subject in environment, then details", () => {
+    expect(buildPrompt({ ...full("flux") })).toBe(
+      "Cinematic photograph of a lone astronaut in a red desert, golden hour light, low angle.",
     );
   });
 
-  it("skips empty fields without leaving double commas or spaces", () => {
-    const s: PromptState = {
-      ...emptyState(),
-      subject: "portrait of an old fisherman",
-      lighting: "golden hour",
-      mood: "nostalgic",
-    };
-    expect(buildPrompt(s)).toBe(
-      "Portrait of an old fisherman, golden hour, nostalgic.",
-    );
-  });
-
-  it("appends negative prompt on its own line", () => {
-    const s: PromptState = {
-      ...emptyState(),
-      subject: "a cat",
-      negative: "blurry, text, watermark",
-    };
-    expect(buildPrompt(s)).toBe("A cat.\n\nNegative prompt: blurry, text, watermark");
+  it("skips empty fields without double commas or spaces", () => {
+    const p = buildPrompt({ ...emptyState(), subject: "a cat", mood: "calm", target: "generic" });
+    expect(p).toBe("A cat, calm.");
   });
 
   it("trims and collapses whitespace in user input", () => {
-    const s: PromptState = { ...emptyState(), subject: "  a   quiet   lake  " };
-    expect(buildPrompt(s)).toBe("A quiet lake.");
+    const p = buildPrompt({ ...emptyState(), subject: "  a   red   fox  ", target: "generic" });
+    expect(p).toBe("A red fox.");
+  });
+});
+
+describe("buildPrompt — per-model syntax", () => {
+  it("Midjourney: --ar and --no parameters, no trailing period", () => {
+    expect(buildPrompt(full("midjourney"))).toBe(
+      "Cinematic photograph of a lone astronaut in a red desert, golden hour light, low angle --ar 16:9 --no text, watermark",
+    );
   });
 
-  it("uses --ar suffix only for midjourney target, sentence form otherwise", () => {
-    const base: PromptState = { ...emptyState(), subject: "a castle", ratio: "9:16" };
-    expect(buildPrompt({ ...base, target: "midjourney" })).toBe("A castle --ar 9:16");
-    expect(buildPrompt({ ...base, target: "generic" })).toBe(
-      "A castle, 9:16 aspect ratio.",
+  it("Stable Diffusion: A1111 'Negative prompt:' line, ratio left to the UI", () => {
+    expect(buildPrompt(full("sdxl"))).toBe(
+      "Cinematic photograph of a lone astronaut in a red desert, golden hour light, low angle.\nNegative prompt: text, watermark",
+    );
+  });
+
+  it("Flux: natural sentence, drops negative and ratio", () => {
+    expect(buildPrompt(full("flux"))).not.toMatch(/watermark|16:9/);
+  });
+
+  it("DALL·E: orientation words and an Avoid sentence", () => {
+    expect(buildPrompt(full("dalle"))).toBe(
+      "Cinematic photograph of a lone astronaut in a red desert, golden hour light, low angle. Wide landscape format. Avoid text, watermark.",
+    );
+    expect(buildPrompt({ ...full("dalle"), ratio: "9:16", negative: "" })).toMatch(/Tall portrait format\.$/);
+    expect(buildPrompt({ ...full("dalle"), ratio: "1:1", negative: "" })).toMatch(/Square format\.$/);
+  });
+
+  it("Any model: ratio phrase plus Negative prompt line", () => {
+    expect(buildPrompt(full("generic"))).toBe(
+      "Cinematic photograph of a lone astronaut in a red desert, golden hour light, low angle, 16:9 aspect ratio.\nNegative prompt: text, watermark",
     );
   });
 });
 
-describe("encodeState / decodeState", () => {
+describe("buildSegments", () => {
+  it("joined segments equal buildPrompt for every target", () => {
+    for (const t of ["midjourney", "sdxl", "flux", "dalle", "generic"] as Target[]) {
+      const s = full(t);
+      expect(buildSegments(s).map((x) => x.text).join("")).toBe(buildPrompt(s));
+    }
+  });
+
+  it("tags each field with its own kind", () => {
+    const kinds = buildSegments(full("midjourney")).map((s) => s.kind);
+    expect(kinds).toEqual(
+      expect.arrayContaining(["style", "subject", "environment", "lighting", "camera", "param", "negative"]),
+    );
+  });
+});
+
+describe("targetNotes", () => {
+  it("gives native pixel sizes for SD and Flux", () => {
+    expect(targetNotes(full("sdxl"))[0]).toContain("1344 × 768");
+    expect(targetNotes(full("flux"))[0]).toContain("1344 × 768");
+  });
+  it("warns that Flux ignores negatives", () => {
+    expect(targetNotes(full("flux")).join(" ")).toMatch(/negative/);
+  });
+  it("is empty for Midjourney", () => {
+    expect(targetNotes(full("midjourney"))).toEqual([]);
+  });
+});
+
+describe("share links", () => {
   it("round-trips a full state through URL params", () => {
-    const s: PromptState = {
-      ...emptyState(),
-      subject: "a red fox & friends",
-      style: "watercolor",
-      ratio: "1:1",
-      target: "sdxl",
-      negative: "text",
-    };
-    const q = encodeState(s);
-    expect(decodeState(new URLSearchParams(q))).toEqual(s);
+    const s = full("dalle");
+    expect(decodeState(new URLSearchParams(encodeState(s)))).toEqual(s);
   });
 
-  it("omits empty fields from the query string", () => {
-    const q = encodeState({ ...emptyState(), subject: "x" });
-    expect(q).toBe("s=x");
+  it("omits empty fields and the default target", () => {
+    expect(encodeState({ ...emptyState(), subject: "a fox" })).toBe("s=a+fox");
   });
 
-  it("ignores unknown params and falls back to defaults", () => {
-    const parsed = decodeState(new URLSearchParams("foo=bar&s=hello&t=nonsense"));
-    expect(parsed.subject).toBe("hello");
-    expect(parsed.target).toBe("midjourney");
+  it("ignores unknown params, bad targets and caps long values", () => {
+    const s = decodeState(new URLSearchParams(`zz=1&t=nope&s=${"a".repeat(500)}`));
+    expect(s.target).toBe("midjourney");
+    expect(s.subject.length).toBe(200);
   });
 });

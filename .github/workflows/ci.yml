@@ -19,8 +19,8 @@ jobs:
       - run: pnpm exec vitest run
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium
-      - name: E2E against static export
+      - name: E2E against the production build
         run: |
-          python3 -m http.server 4321 --directory out --bind 127.0.0.1 &
-          sleep 1
+          pnpm exec next start -p 4321 -H 127.0.0.1 &
+          npx --yes wait-on@8 http://127.0.0.1:4321 --timeout 60000
           pnpm exec playwright test
