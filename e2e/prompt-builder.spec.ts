@@ -3,12 +3,12 @@ import { expect, test } from "@playwright/test";
 test.describe("AI Prompt Builder", () => {
   test("prompt appears instantly while typing, with correct structure", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("AI Image Prompt Builder");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Write AI image prompts");
 
     const out = page.getByTestId("prompt-output");
-    await expect(out).toContainText("Start typing a subject");
+    await expect(out).toContainText("Start with a subject");
 
-    await page.getByLabel("Subject").fill("a lone astronaut on a red dune");
+    await page.getByRole("textbox", { name: "Subject", exact: true }).fill("a lone astronaut on a red dune");
     await expect(out).toHaveText("A lone astronaut on a red dune.");
 
     await page.getByRole("button", { name: "cinematic photograph", exact: true }).click();
@@ -31,7 +31,7 @@ test.describe("AI Prompt Builder", () => {
     context,
   }) => {
     await page.goto("/");
-    await page.getByLabel("Subject").fill("a ceramic mug");
+    await page.getByRole("textbox", { name: "Subject", exact: true }).fill("a ceramic mug");
     await page.getByRole("button", { name: "Product shot", exact: true }).click();
 
     const out = page.getByTestId("prompt-output");
@@ -44,38 +44,58 @@ test.describe("AI Prompt Builder", () => {
     const fresh = await context.newPage();
     await fresh.goto(shareUrl);
     await expect(fresh.getByTestId("prompt-output")).toHaveText(await out.textContent() ?? "");
-    await expect(fresh.getByLabel("Subject")).toHaveValue("a ceramic mug");
-    await expect(fresh.getByLabel("Style")).toHaveValue("product photo");
+    await expect(fresh.getByRole("textbox", { name: "Subject", exact: true })).toHaveValue("a ceramic mug");
+    await expect(fresh.getByRole("textbox", { name: "Style", exact: true })).toHaveValue("product photo");
   });
 
   test("copy button writes the prompt to the clipboard", async ({ page, context }) => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     await page.goto("/");
-    await page.getByLabel("Subject").fill("a red fox");
-    await page.getByRole("button", { name: "Copy prompt" }).click();
-    await expect(page.getByRole("button", { name: "Copied ✓" })).toBeVisible();
+    await page.getByRole("textbox", { name: "Subject", exact: true }).fill("a red fox");
+    await page.getByRole("button", { name: "Copy prompt" }).first().click();
+    await expect(page.getByRole("button", { name: "Copied", exact: true }).first()).toBeVisible();
     const clip = await page.evaluate(() => navigator.clipboard.readText());
     expect(clip).toBe("A red fox.");
   });
 
   test("recent prompts are saved locally and can be restored", async ({ page }) => {
     await page.goto("/");
-    await page.getByLabel("Subject").fill("a lighthouse in a storm");
+    await page.getByRole("textbox", { name: "Subject", exact: true }).fill("a lighthouse in a storm");
     await expect(page.getByRole("heading", { name: "Recent prompts" })).toBeVisible({
       timeout: 5000,
     });
     await page.getByRole("button", { name: "Clear all" }).click();
-    await expect(page.getByTestId("prompt-output")).toContainText("Start typing");
+    await expect(page.getByTestId("prompt-output")).toContainText("Start with a subject");
     await page.getByRole("button", { name: /a lighthouse in a storm/i }).click();
-    await expect(page.getByLabel("Subject")).toHaveValue("a lighthouse in a storm");
+    await expect(page.getByRole("textbox", { name: "Subject", exact: true })).toHaveValue("a lighthouse in a storm");
   });
 
   test("dark mode toggle persists across reload", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "light" });
     await page.goto("/");
     await page.getByRole("button", { name: "Switch to dark mode" }).click();
     await expect(page.locator("html")).toHaveClass(/dark/);
     await page.reload();
     await expect(page.locator("html")).toHaveClass(/dark/);
+  });
+
+  test("keyboard shortcut ⌘/Ctrl+Enter copies the prompt", async ({ page, context }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.goto("/");
+    await page.getByRole("textbox", { name: "Subject", exact: true }).fill("a mountain cabin");
+    await page.keyboard.press("ControlOrMeta+Enter");
+    await expect(page.getByText("Prompt copied")).toBeVisible();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("A mountain cabin.");
+  });
+
+  test("output is colour-coded per field and text equals the plain prompt", async ({ page }) => {
+    await page.goto("/?s=a+cat&st=photo&l=soft+light&r=1%3A1");
+    const out = page.getByTestId("prompt-output");
+    await expect(out).toHaveText("Photo of a cat, soft light --ar 1:1");
+    await expect(out.locator('[title="style"]')).toHaveText("Photo");
+    await expect(out.locator('[title="subject"]')).toHaveText("a cat");
+    await expect(out.locator('[title="lighting"]')).toHaveText("soft light");
+    await expect(out.locator('[title="aspect ratio"]')).toHaveText("--ar 1:1");
   });
 
   test("support pages, sitemap and robots exist", async ({ page, request }) => {

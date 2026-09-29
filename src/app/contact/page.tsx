@@ -8,15 +8,15 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    <article className="prose-custom max-w-3xl py-10">
+    <article className="mx-auto max-w-3xl px-4 py-14 sm:px-6">
       <h1 className="text-3xl font-bold tracking-tight">Contact</h1>
-      <p className="mt-4 text-muted">
+      <p className="mt-4 text-muted-foreground">
         Found a bug, want a new template, or have a preset that everyone should have? Open an
         issue on GitHub — it is the fastest way to reach us.
       </p>
       <p className="mt-4">
         <a
-          className="text-accent underline underline-offset-4"
+          className="text-primary underline underline-offset-4"
           href="https://github.com/krishmunjapara/ai-prompt-builder/issues"
           rel="noopener"
         >

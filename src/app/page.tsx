@@ -1,5 +1,16 @@
 import type { Metadata } from "next";
+import {
+  CameraIcon,
+  ImageIcon,
+  LockIcon,
+  MapPinIcon,
+  RatioIcon,
+  SunIcon,
+  WandSparklesIcon,
+  ZapIcon,
+} from "lucide-react";
 import { PromptBuilder } from "@/components/PromptBuilder";
+import { Badge } from "@/components/ui/badge";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -29,7 +40,40 @@ const FAQ = [
   },
   {
     q: "How do I share a prompt?",
-    a: "Click “Copy share link”. The whole form is encoded in the URL, so whoever opens the link sees the same fields filled in.",
+    a: "Click “Share link”. The whole form is encoded in the URL, so whoever opens the link sees the same fields filled in.",
+  },
+];
+
+const GUIDE = [
+  {
+    icon: <ImageIcon />,
+    title: "Start with the subject",
+    body: "Say what is in the picture in plain words: “a lone astronaut on a red dune”, “a ceramic coffee mug”. This is the one field every prompt needs.",
+  },
+  {
+    icon: <WandSparklesIcon />,
+    title: "Choose a style",
+    body: "Photograph, illustration, 3D render, anime — the style word decides the overall look more than anything else you write.",
+  },
+  {
+    icon: <MapPinIcon />,
+    title: "Place it somewhere",
+    body: "Environment gives the model context: a foggy forest, a neon street, a clean studio. Skip it for isolated product shots.",
+  },
+  {
+    icon: <SunIcon />,
+    title: "Describe the light",
+    body: "Golden hour, soft diffused, dramatic rim light. Light sets the mood faster than a mood word does.",
+  },
+  {
+    icon: <CameraIcon />,
+    title: "Set the camera",
+    body: "Angle, lens and framing tell the model how the shot is composed. A 35mm wide shot and an 85mm close-up look completely different.",
+  },
+  {
+    icon: <RatioIcon />,
+    title: "Pick the ratio",
+    body: "9:16 for Reels and Shorts, 16:9 for YouTube, 1:1 for a square post, 4:5 for Instagram portrait.",
   },
 ];
 
@@ -60,100 +104,121 @@ const jsonLd = {
 export default function HomePage() {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      <section className="py-8 sm:py-10">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          AI Image Prompt Builder
-        </h1>
-        <p className="mt-3 max-w-2xl text-muted">
-          Describe your image field by field and watch a clean, detailed prompt appear as you
-          type. Works for Midjourney, Stable Diffusion, Flux, DALL·E and any other
-          text-to-image model. Free, no signup, nothing leaves your browser.
-        </p>
+      {/* ---------- Hero ---------- */}
+      <section className="relative overflow-hidden">
+        <div className="bg-dotgrid pointer-events-none absolute inset-0" aria-hidden />
+        <div
+          className="pointer-events-none absolute left-1/2 top-[-160px] h-[360px] w-[720px] -translate-x-1/2 rounded-full bg-primary/20 blur-[120px] dark:bg-primary/15"
+          aria-hidden
+        />
+        <div className="relative mx-auto max-w-6xl px-4 pt-14 pb-10 sm:px-6 sm:pt-20 sm:pb-14">
+          <div className="animate-fade-up flex flex-wrap items-center gap-2">
+            <Badge variant="outline" className="gap-1.5 rounded-full border-primary/30 bg-primary/5 px-3 py-1 text-primary">
+              <ZapIcon className="size-3" />
+              Live as you type
+            </Badge>
+            <Badge variant="outline" className="gap-1.5 rounded-full px-3 py-1 text-muted-foreground">
+              <LockIcon className="size-3" />
+              100% in your browser
+            </Badge>
+          </div>
+          <h1 className="animate-fade-up mt-5 max-w-3xl text-[2.5rem] font-semibold leading-[1.05] tracking-[-0.03em] [animation-delay:60ms] sm:text-6xl">
+            <span className="text-gradient">Write AI image prompts</span>
+            <br />
+            <span className="text-muted-foreground">that actually work.</span>
+          </h1>
+          <p className="animate-fade-up mt-5 max-w-2xl text-[17px] leading-relaxed text-muted-foreground [animation-delay:120ms]">
+            Fill in a few fields — subject, style, light, camera, mood — and a clean, detailed prompt
+            writes itself in real time. Built for Midjourney, Stable Diffusion, Flux and DALL·E.
+            Free, no signup, nothing leaves your device.
+          </p>
+        </div>
       </section>
 
-      <PromptBuilder />
+      {/* ---------- Tool ---------- */}
+      <section className="mx-auto max-w-6xl px-4 sm:px-6" aria-label="Prompt builder">
+        <PromptBuilder />
+      </section>
 
-      <section id="how-it-works" className="mt-16 max-w-3xl">
-        <h2 className="text-2xl font-semibold tracking-tight">How to write an AI image prompt</h2>
-        <ol className="mt-4 list-decimal space-y-3 pl-5 text-muted">
-          <li>
-            <strong className="text-text">Start with the subject.</strong> Say what is in the
-            picture in plain words: “a lone astronaut on a red dune”, “a ceramic coffee mug”.
-          </li>
-          <li>
-            <strong className="text-text">Choose a style.</strong> Photograph, illustration,
-            3D render, anime — this decides the overall look more than any other word.
-          </li>
-          <li>
-            <strong className="text-text">Add environment and light.</strong> Where is it, and
-            what is the light doing? Golden hour, neon, soft studio light all change the mood.
-          </li>
-          <li>
-            <strong className="text-text">Set the camera.</strong> Angle, lens and framing tell
-            the model how the shot is composed. A 35mm wide shot and an 85mm close-up look
-            completely different.
-          </li>
-          <li>
-            <strong className="text-text">Finish with mood, colour and ratio.</strong> Pick the
-            aspect ratio for where the image will be used — 9:16 for Reels and Shorts, 16:9 for
-            YouTube, 1:1 for a square post.
-          </li>
+      {/* ---------- Guide ---------- */}
+      <section id="guide" className="mx-auto mt-28 max-w-6xl scroll-mt-20 px-4 sm:px-6">
+        <div className="max-w-2xl">
+          <p className="text-sm font-medium text-primary">Guide</p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-[-0.02em]">How to write a prompt that works</h2>
+          <p className="mt-3 text-muted-foreground">
+            Six decisions, in the order most models weight them. The builder above follows the same order.
+          </p>
+        </div>
+        <ol className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {GUIDE.map((g, i) => (
+            <li
+              key={g.title}
+              className="group relative rounded-2xl border border-border/80 bg-card p-5 transition-colors hover:border-primary/40"
+            >
+              <div className="flex items-center justify-between">
+                <span className="inline-flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary [&>svg]:size-4">
+                  {g.icon}
+                </span>
+                <span className="font-mono text-xs text-muted-foreground tabular-nums">0{i + 1}</span>
+              </div>
+              <h3 className="mt-4 font-semibold">{g.title}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{g.body}</p>
+            </li>
+          ))}
         </ol>
       </section>
 
-      <section className="mt-12 max-w-3xl">
-        <h2 className="text-2xl font-semibold tracking-tight">Prompt syntax by model</h2>
-        <div className="mt-4 overflow-x-auto">
+      {/* ---------- Syntax table ---------- */}
+      <section className="mx-auto mt-24 max-w-6xl px-4 sm:px-6">
+        <div className="max-w-2xl">
+          <p className="text-sm font-medium text-primary">Reference</p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-[-0.02em]">Prompt syntax by model</h2>
+        </div>
+        <div className="mt-8 overflow-hidden rounded-2xl border border-border/80 bg-card">
           <table className="w-full text-left text-sm">
-            <thead className="text-muted">
+            <thead className="bg-muted/60 text-muted-foreground">
               <tr>
-                <th className="py-2 pr-4 font-medium">Model</th>
-                <th className="py-2 pr-4 font-medium">Aspect ratio</th>
-                <th className="py-2 font-medium">Negative prompt</th>
+                <th className="px-5 py-3 font-medium">Model</th>
+                <th className="px-5 py-3 font-medium">Aspect ratio</th>
+                <th className="px-5 py-3 font-medium">Negative prompt</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
-              <tr>
-                <td className="py-2 pr-4">Midjourney</td>
-                <td className="py-2 pr-4 font-mono">--ar 16:9</td>
-                <td className="py-2 font-mono">--no text, watermark</td>
-              </tr>
-              <tr>
-                <td className="py-2 pr-4">Stable Diffusion / SDXL</td>
-                <td className="py-2 pr-4">Set width × height in the UI</td>
-                <td className="py-2">Separate negative-prompt box</td>
-              </tr>
-              <tr>
-                <td className="py-2 pr-4">Flux</td>
-                <td className="py-2 pr-4">Set width × height in the UI</td>
-                <td className="py-2">Describe what you want instead</td>
-              </tr>
-              <tr>
-                <td className="py-2 pr-4">DALL·E / GPT</td>
-                <td className="py-2 pr-4">Say “landscape”, “portrait” or “square”</td>
-                <td className="py-2">Describe what you want instead</td>
-              </tr>
+            <tbody className="divide-y divide-border/80">
+              {[
+                ["Midjourney", <code key="a">--ar 16:9</code>, <code key="b">--no text, watermark</code>],
+                ["Stable Diffusion / SDXL", "Set width × height in the UI", "Separate negative-prompt box"],
+                ["Flux", "Set width × height in the UI", "Describe what you want instead"],
+                ["DALL·E / GPT", "Say “landscape”, “portrait” or “square”", "Describe what you want instead"],
+              ].map(([m, r, n]) => (
+                <tr key={m as string} className="[&_code]:rounded-md [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[13px]">
+                  <td className="px-5 py-3.5 font-medium">{m}</td>
+                  <td className="px-5 py-3.5 text-muted-foreground">{r}</td>
+                  <td className="px-5 py-3.5 text-muted-foreground">{n}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       </section>
 
-      <section id="faq" className="mt-12 max-w-3xl">
-        <h2 className="text-2xl font-semibold tracking-tight">FAQ</h2>
-        <dl className="mt-4 divide-y divide-border">
+      {/* ---------- FAQ ---------- */}
+      <section id="faq" className="mx-auto mt-24 max-w-6xl scroll-mt-20 px-4 sm:px-6">
+        <div className="max-w-2xl">
+          <p className="text-sm font-medium text-primary">FAQ</p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-[-0.02em]">Questions, answered</h2>
+        </div>
+        <dl className="mt-8 grid gap-x-10 gap-y-8 md:grid-cols-2">
           {FAQ.map((f) => (
-            <div key={f.q} className="py-4">
+            <div key={f.q}>
               <dt className="font-medium">{f.q}</dt>
-              <dd className="mt-1 text-muted">{f.a}</dd>
+              <dd className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{f.a}</dd>
             </div>
           ))}
         </dl>
       </section>
+
     </>
   );
 }
